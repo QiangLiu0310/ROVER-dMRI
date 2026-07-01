@@ -1,0 +1,15 @@
+# Output
+output_folder: rover_philips_tcnn_relu_tv_1e-5_profile1_b1p5_L8_T25
+experiment_name: hashenc
+
+# Model options
+r: 192
+depth: 2
+n_levels: 8
+n_features_per_level: 2
+log2_hashmap_size: 25
+base_resolution: 16
+lambda_c: 1e-5
+
+#test
+iter: 100

@@ -1,0 +1,17 @@
+# Python deps for the ROVER MRI (Philips) TCNN scripts.
+# Install PyTorch FIRST (matching your CUDA), then this file, then tiny-cuda-nn.
+# See ENVIRONMENT.md for the full setup, incl. GPU/CUDA requirements.
+
+# torch is intentionally NOT pinned here — install the build matching your CUDA
+# from https://pytorch.org (e.g. pip install torch --index-url .../cu121)
+torch
+
+numpy
+scipy
+nibabel
+matplotlib
+PyYAML
+tensorboard
+
+# GPU-only, compiles against your torch+CUDA — install separately (see ENVIRONMENT.md):
+# pip install git+https://github.com/NVlabs/tiny-cuda-nn/#subdirectory=bindings/torch
