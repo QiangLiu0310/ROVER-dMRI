@@ -156,6 +156,15 @@ python rover_b0_hash_philps_v3_tcnn_relu_charb_tv_test.py \
     --checkpoint_path output/outputs/<model_name>/checkpoints/model_008000.pt
 ```
 
+Example using the input-directory test variant and the completed 8000-epoch
+checkpoint:
+
+```bash
+python rover_b0_hash_philps_v3_tcnn_relu_charb_tv_test_inputdir.py \
+  --input_dir "/autofs/space/daisy_002/users/berkin/2026_08_07_bay5_rover_msepi_750um_invivo/rover_msepi_2026.08.07-09_42_17-DST-1.3.12.2.1107.5.99.3_19900101/nii/preprocess_rover_nii" \
+  --checkpoint_path "/cluster/berkin/berkin/Matlab_Code_New/PULSEQ/ROVER-dMRI_Philips_Share-main/output/outputs/rover_philips_tcnn_relu_tv_1e-5_profile1_b1p5_L8_T25/rover_tcnn_relu_psf_charb_hashenc_lev8_r192_d2_log25_nl_2_br16_bs100000_lambda1e-5_wsliceprofile_Mxy_sinc_eps0p1/checkpoints/model_008000.pt"
+```
+
 Useful options: `--checkpoint_iter`, `--checkpoint_path`, `--weight_mode`,
 `--charb_epsilon`, `--z_spacing_mm` (through-plane voxel size written to the
 NIfTI header, default 1.4 mm).
