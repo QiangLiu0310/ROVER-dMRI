@@ -40,8 +40,6 @@ run('Preprocessing_code_matlab/Step_1_preprocess.m')
 
     BB note: skip this step, apply only step 2
 
-
-
 ### Step 2 — `Step_2_generate_npy.m`
 
 Reads the per-orientation NIfTIs (`Dicom_DWI_rot1..12_*.nii`) and writes, for
@@ -94,20 +92,21 @@ mixed precision; it will not run on CPU).
 
 ---
 
-## 3. Training — `rover_b0_hash_philps_v3_tcnn_relu_charb_tv_inputdir.py`
+## 3. Training — `rover_b0_hash_philps_v3_tcnn_relu_charb_tv_inputdir_v0.py`
 
 The input directory must contain matching files for each view:
 
 - `imgs_nii_<i>.npy` — image volumes
 - `Affine_nii_<i>.npy` — affine matrices
 
-The script naturally orders the numbered files and determines the image size
-from the input arrays. All selected image views must be 3D and have the same
-shape.
+The script naturally orders the numbered files, determines the image size, and
+reads `spa_res` from the X-axis norm of `Affine_nii_1.npy`. All selected image
+views must be 3D, have the same shape, and have consistent in-plane spacing.
 
 ```bash
-python rover_b0_hash_philps_v3_tcnn_relu_charb_tv_inputdir.py \
-    --input_dir "/path/to/preprocess_rover_nii"
+python rover_b0_hash_philps_v3_tcnn_relu_charb_tv_inputdir_v0.py \
+    --input_dir "/path/to/preprocess_rover_nii" \
+    --num_depth_layers 8
 ```
 
 Runs with the defaults in `configs/data_v9.yaml` and
@@ -119,7 +118,8 @@ Useful options:
 
 | Flag                 | Default                           | Meaning                                                                                                                   |
 | -------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `--input_dir`      | required                          | Directory containing the `imgs_nii_<i>.npy` and `Affine_nii_<i>.npy` files                                             |
+| `--input_dir`      | required                          | Directory containing the`imgs_nii_<i>.npy` and `Affine_nii_<i>.npy` files                                             |
+| `--num_depth_layers` | `8`                             | Number of reconstructed depth layers                                                                                       |
 | `--weight_mode`    | `sliceprofile`                  | Through-plane PSF weighting:`sliceprofile`, `equal`, or `gaussian`                                                  |
 | `--profile_var`    | `Mxy_sinc`                      | Which profile in the`.mat` to use: `Mxy_sinc` (excitation-only), `Mse_sinc` (spin-echo), `Mref_sinc` (refocusing) |
 | `--rf_profile_mat` | `rf_slice_profile_mse_sinc.mat` | Slice-profile file (only for`sliceprofile` mode)                                                                        |
@@ -130,58 +130,62 @@ Useful options:
 Example (uniform weighting instead of slice profile):
 
 ```bash
-python rover_b0_hash_philps_v3_tcnn_relu_charb_tv_inputdir.py \
+python rover_b0_hash_philps_v3_tcnn_relu_charb_tv_inputdir_v0.py \
     --input_dir "/path/to/preprocess_rover_nii" \
     --weight_mode equal
 ```
 
-The original `rover_b0_hash_philps_v3_tcnn_relu_charb_tv.py` is retained as the
-legacy training script with fixed/default input paths.
+The existing non-`_v0` scripts are retained unchanged for legacy runs.
 
 ---
 
-## 4. Inference / test — `rover_b0_hash_philps_v3_tcnn_relu_charb_tv_test.py`
+## 4. Inference / test — `rover_b0_hash_philps_v3_tcnn_relu_charb_tv_test_inputdir_v0.py`
 
-Loads a trained checkpoint and writes the reconstructed volume as NIfTI to
-`output/outputs/<model_name>/test-output/`. The `weight_mode`, `profile_var`
-(where applicable) and `charb_epsilon` must match the training run so the model
-folder name resolves.
+Loads a trained checkpoint and writes the reconstructed volume as NIfTI. For
+the current `Mxy_sinc` slice-profile run, pass the checkpoint file explicitly:
 
 ```bash
-# by iteration (finds model_008000.pt in the matching run folder)
-python rover_b0_hash_philps_v3_tcnn_relu_charb_tv_test.py --checkpoint_iter 8000
-
-# or point directly at a checkpoint file
-python rover_b0_hash_philps_v3_tcnn_relu_charb_tv_test.py \
-    --checkpoint_path output/outputs/<model_name>/checkpoints/model_008000.pt
-```
-
-Example using the input-directory test variant and the completed 8000-epoch
-checkpoint:
-
-```bash
-python rover_b0_hash_philps_v3_tcnn_relu_charb_tv_test_inputdir.py \
+python rover_b0_hash_philps_v3_tcnn_relu_charb_tv_test_inputdir_v0.py \
   --input_dir "/autofs/space/daisy_002/users/berkin/2026_08_07_bay5_rover_msepi_750um_invivo/rover_msepi_2026.08.07-09_42_17-DST-1.3.12.2.1107.5.99.3_19900101/nii/preprocess_rover_nii" \
-  --checkpoint_path "/cluster/berkin/berkin/Matlab_Code_New/PULSEQ/ROVER-dMRI_Philips_Share-main/output/outputs/rover_philips_tcnn_relu_tv_1e-5_profile1_b1p5_L8_T25/rover_tcnn_relu_psf_charb_hashenc_lev8_r192_d2_log25_nl_2_br16_bs100000_lambda1e-5_wsliceprofile_Mxy_sinc_eps0p1/checkpoints/model_008000.pt"
+  --num_depth_layers 8 \
+  --output_path output_v0 \
+  --checkpoint_path "/autofs/cluster/berkin/berkin/Matlab_Code_New/PULSEQ/ROVER-dMRI_Philips_Share-main/output_v0/outputs/rover_philips_tcnn_relu_tv_1e-5_profile1_b1p5_L8_T25/rover_tcnn_relu_psf_charb_hashenc_lev8_r192_d2_log25_nl_2_br16_bs100000_lambda1e-5_wsliceprofile_Mxy_sinc_eps0p1/checkpoints/model_008000.pt"
 ```
 
-Useful options: `--checkpoint_iter`, `--checkpoint_path`, `--weight_mode`,
-`--charb_epsilon`, `--z_spacing_mm` (through-plane voxel size written to the
-NIfTI header, default 1.4 mm).
+When `--checkpoint_path` is supplied, the script obtains the run directory from
+that path, so `--checkpoint_iter 8000` is unnecessary. The reconstructed NIfTI
+is saved under the same run directory at:
+
+```text
+output_v0/outputs/<model_name>/test-output/
+```
+
+> **Current slice-profile folder-name limitation:** `--checkpoint_iter 8000`
+> alone does not resolve this run. The test script searches for a folder tagged
+> `wsliceprofile`, but training created the folder with the more specific tag
+> `wsliceprofile_Mxy_sinc`. Use the explicit `--checkpoint_path` command above.
+
+Useful supported options include `--input_dir`, `--num_depth_layers`,
+`--output_path`, `--checkpoint_path`, `--checkpoint_iter`, `--weight_mode`,
+`--rf_profile_mat`, `--charb_epsilon`, `--config`, and `--z_spacing_mm`.
+`--z_spacing_mm` controls the through-plane voxel size written to the NIfTI
+header and defaults to the affine-derived `spa_res`.
 
 ---
 
 ## Files
 
-| Path                                                   | Purpose                                                 |
-| ------------------------------------------------------ | ------------------------------------------------------- |
-| `Preprocessing_code_matlab/Step_1_preprocess.m`      | Step 1: clean NIfTIs to single-frame 3D                 |
-| `Preprocessing_code_matlab/Step_2_generate_npy.m`    | Step 2: export`imgs_nii_*.npy` + `Affine_nii_*.npy` |
-| `rover_b0_hash_philps_v3_tcnn_relu_charb_tv_inputdir.py` | **Recommended training (`--input_dir`)**              |
-| `rover_b0_hash_philps_v3_tcnn_relu_charb_tv.py`      | Legacy training with fixed/default input paths           |
-| `rover_b0_hash_philps_v3_tcnn_relu_charb_tv_test.py` | **Inference / test**                              |
-| `util_args_rover_b0_v9_lr1e4.py`                     | CLI args / data paths (`--img_path`, sizes, epochs)   |
-| `configs/data_v9.yaml`                               | Model + output config                                   |
-| `utils.py`, `fda/…`                               | Helpers (config load, normalization, dataset object)    |
-| `rf_slice_profile_mse_sinc.mat`                      | Simulated RF slice profile used by`sliceprofile` mode |
-| `ENVIRONMENT.md`, `requirements.txt`               | Python environment                                      |
+| Path                                                       | Purpose                                                 |
+| ---------------------------------------------------------- | ------------------------------------------------------- |
+| `Preprocessing_code_matlab/Step_1_preprocess.m`          | Step 1: clean NIfTIs to single-frame 3D                 |
+| `Preprocessing_code_matlab/Step_2_generate_npy.m`        | Step 2: export`imgs_nii_*.npy` + `Affine_nii_*.npy` |
+| `rover_b0_hash_philps_v3_tcnn_relu_charb_tv_inputdir_v0.py` | **Automatic-geometry training (`--input_dir`)** |
+| `rover_b0_hash_philps_v3_tcnn_relu_charb_tv_test_inputdir_v0.py` | **Automatic-geometry inference / test** |
+| `rover_b0_hash_philps_v3_tcnn_relu_charb_tv_inputdir.py` | Legacy input-directory training (unchanged) |
+| `rover_b0_hash_philps_v3_tcnn_relu_charb_tv.py`          | Legacy training with fixed/default input paths          |
+| `rover_b0_hash_philps_v3_tcnn_relu_charb_tv_test.py`     | **Inference / test**                              |
+| `util_args_rover_b0_v9_lr1e4.py`                         | CLI args / data paths (`--img_path`, sizes, epochs)   |
+| `configs/data_v9.yaml`                                   | Model + output config                                   |
+| `utils.py`, `fda/…`                                   | Helpers (config load, normalization, dataset object)    |
+| `rf_slice_profile_mse_sinc.mat`                          | Simulated RF slice profile used by`sliceprofile` mode |
+| `ENVIRONMENT.md`, `requirements.txt`                   | Python environment                                      |
