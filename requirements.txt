@@ -1,4 +1,4 @@
-# Python deps for the ROVER MRI (Philips) TCNN scripts.
+# Python deps for the ROVER-dMRI TCNN scripts.
 # Install PyTorch FIRST (matching your CUDA), then this file, then tiny-cuda-nn.
 # See ENVIRONMENT.md for the full setup, incl. GPU/CUDA requirements.
 

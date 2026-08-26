@@ -2,7 +2,7 @@
 
 addpath(genpath('/rfanfs/pnl-zorro/home/ql087/lq/Shared_MRI/npy-matlab-master'))
 
-base_path='/scratch/home/ql087/data_bwh/Philips/For_Qiang_phantom/nii_new/';
+base_path='/path/to/your/data/nii_new/';  % edit to your Step 1 output location
 
 
 output_path = fullfile(base_path, 'preprocess_rover_nii');

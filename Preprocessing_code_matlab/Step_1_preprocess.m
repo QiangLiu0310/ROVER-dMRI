@@ -4,7 +4,7 @@ clear; close all; clc;
 % fix the header so it describes a single-frame 3D volume, and write the
 % result to the nii_new folder.
 
-baseDir = '/scratch/home/ql087/data_bwh/Philips/For_Qiang_phantom';
+baseDir = '/path/to/your/data';  % edit to your raw NIfTI location
 inDir   = fullfile(baseDir, 'nii');
 outDir  = fullfile(baseDir, 'nii_b0');
 

@@ -5,16 +5,16 @@ neural representation reconstructs an isotropic high-resolution volume from
 multi-orientation thick-slice acquisitions, with an RF slice-profile PSF
 model along the through-plane direction.
 
-Two dataset configurations are provided:
+Dataset configuration:
 
-| | Primary: Cima | Legacy: Philips phantom |
-|---|---|---|
-| Slice profile | TBWP=4 sinc (`rf_profile_tbwp4.mat`) | TBWP=4 sinc, spin-echo variant (`rf_slice_profile_mse_sinc.mat`) |
-| Args | `util_args_rover_b0_v18_lr1e4.py` | `util_args_rover_b0_v9_lr1e4.py` |
-| Config | `configs/qiang_data_v10.yaml` | `configs/data_v9.yaml` |
-| Training script | `rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4.py` | `rover_b0_hash_philps_v3_tcnn_relu_charb_tv.py` |
-| Test script | `rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4_test.py` | `rover_b0_hash_philps_v3_tcnn_relu_charb_tv_test.py` |
-| Views / image size | 12 views, 310x310x28 | 12 views, 224x224x15 |
+| | |
+|---|---|
+| Slice profile | TBWP=4 sinc (`rf_profile_tbwp4.mat`) |
+| Args | `util_args_rover_b0_v18_lr1e4.py` |
+| Config | `configs/qiang_data_v10.yaml` |
+| Training script | `rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4.py` |
+| Test script | `rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4_test.py` |
+| Views / image size | 12 views, 310x310x28 |
 
 ## Repository layout
 
@@ -208,20 +208,6 @@ Useful options: `--checkpoint_iter`, `--checkpoint_path`, `--weight_mode`,
 `--charb_epsilon`, `--z_spacing_mm` (through-plane voxel size written to the
 NIfTI header, default = in-plane x resolution).
 
-## Legacy: Philips phantom pipeline
-
-The original Philips-phantom scripts are kept for reference:
-
-```bash
-python rover_b0_hash_philps_v3_tcnn_relu_charb_tv.py
-python rover_b0_hash_philps_v3_tcnn_relu_charb_tv_test.py --checkpoint_iter 8000
-```
-
-These use `util_args_rover_b0_v9_lr1e4.py`, `configs/data_v9.yaml`, and
-`rf_slice_profile_mse_sinc.mat` (image size 224x224x15), and additionally
-support `--profile_var` to pick which profile in the `.mat` to use
-(`Mxy_sinc`, `Mse_sinc`, `Mref_sinc`).
-
 ---
 
 ## Files
@@ -238,15 +224,10 @@ support `--profile_var` to pick which profile in the `.mat` to use
 | `Preprocessing_code_matlab/Step_1_preprocess.m` | Step 1: clean NIfTIs to single-frame 3D |
 | `Preprocessing_code_matlab/Step_2_generate_npy.m` | Step 2: export `imgs_nii_*.npy` + `Affine_nii_*.npy` |
 | `Preprocessing_code_matlab/rf_pulse_simulation_QL_v3.m` | RF slice-profile simulation |
-| `rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4.py` | **Training (primary, Cima)** |
-| `rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4_test.py` | **Inference / test (primary, Cima)** |
-| `util_args_rover_b0_v18_lr1e4.py` | CLI args / data paths for the Cima pipeline |
-| `configs/qiang_data_v10.yaml` | Model + output config for the Cima pipeline |
-| `rf_profile_tbwp4.mat`, `rf_profile_tbwp4.png` | TBWP=4 RF slice profile used by `sliceprofile` mode (Cima) |
-| `rover_b0_hash_philps_v3_tcnn_relu_charb_tv.py` | Training (legacy, Philips phantom) |
-| `rover_b0_hash_philps_v3_tcnn_relu_charb_tv_test.py` | Inference / test (legacy, Philips phantom) |
-| `util_args_rover_b0_v9_lr1e4.py` | CLI args / data paths for the Philips phantom pipeline |
-| `configs/data_v9.yaml` | Model + output config for the Philips phantom pipeline |
-| `rf_slice_profile_mse_sinc.mat` | Simulated RF slice profile used by the Philips phantom pipeline |
+| `rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4.py` | **Training** |
+| `rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4_test.py` | **Inference / test** |
+| `util_args_rover_b0_v18_lr1e4.py` | CLI args / data paths |
+| `configs/qiang_data_v10.yaml` | Model + output config |
+| `rf_profile_tbwp4.mat`, `rf_profile_tbwp4.png` | TBWP=4 RF slice profile used by `sliceprofile` mode |
 | `utils.py`, `fda/…` | Helpers (config load, normalization, dataset object) |
 | `ENVIRONMENT.md`, `requirements.txt` | Python environment |
