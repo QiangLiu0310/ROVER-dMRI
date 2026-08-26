@@ -20,13 +20,16 @@ Two dataset configurations are provided:
 
 Run the steps in this order:
 
-1. **MATLAB preprocessing — Step 1** (`Preprocessing_code_matlab/Step_1_preprocess.m`)
-2. **MATLAB preprocessing — Step 2** (`Preprocessing_code_matlab/Step_2_generate_npy.m`)
-3. **Python training** (`rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4.py`)
-4. **Python inference / test** (`rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4_test.py`)
+1. **Acquisition — Pulseq sequence** (`sequence/matlab/demoSeq/rover_dmri/`)
+2. **Scanner recon — raw k-space to NIfTI** (`recon/`)
+3. **MATLAB preprocessing — Step 1** (`Preprocessing_code_matlab/Step_1_preprocess.m`)
+4. **MATLAB preprocessing — Step 2** (`Preprocessing_code_matlab/Step_2_generate_npy.m`)
+5. **Python training** (`rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4.py`)
+6. **Python inference / test** (`rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4_test.py`)
 
-Steps 1–2 turn the raw NIfTI acquisitions into the `.npy` image + affine files
-that the Python code reads; steps 3–4 train the model and reconstruct the volume.
+Steps 1–2 acquire and reconstruct the per-view NIfTI volumes; steps 3–4 turn
+those NIfTIs into the `.npy` image + affine files the Python code reads;
+steps 5–6 train the model and reconstruct the final isotropic volume.
 
 ---
 
@@ -48,7 +51,54 @@ downloaded OpenNeuro dataset once available).
 
 ---
 
-## 1. Preprocessing (MATLAB)
+## 1. Acquisition — Pulseq sequence (MATLAB)
+
+`sequence/` vendors the [Pulseq](https://pulseq.github.io/) v1.5.1 MATLAB
+toolbox (`sequence/matlab/+mr/`) plus the ROVER-dMRI sequence built on top of
+it, originally from
+[Pulseq_V151_ROVER_dMRI](https://github.com/QiangLiu0310/Pulseq_V151_ROVER_dMRI).
+
+- `sequence/matlab/demoSeq/rover_dmri/singleband/cimax/ep2d_6mm_R6_3shots_slc28_dir25_QL_v4.m` —
+  writes the `.seq` file for the multi-shot EPI diffusion acquisition (3-shot,
+  R=6/shot, b0 + diffusion, run at 12 rotated in-plane orientations to give
+  the 12 views the reconstruction expects).
+- `sequence/matlab/demoSeq/write2DGRE_QL_v3.m` — 2D GRE calibration scan
+  (coil sensitivity maps for the parallel-imaging recon below).
+- `sequence/diffusion_table/` — diffusion gradient tables (`.dvs`/`.txt`)
+  referenced by the sequence script.
+
+Run the sequence script in MATLAB with `sequence/matlab` (incl. `+mr/`) on
+the path; it writes a `.seq` file to load on the scanner. Edit the
+`seq_file` name and imaging parameters at the top of the script for your setup.
+
+---
+
+## 2. Reconstruction — raw k-space to NIfTI (MATLAB)
+
+`recon/` turns the raw scanner data from the 12 rotated-view acquisitions
+into the per-view NIfTI volumes that Step 1 of the MATLAB preprocessing
+below consumes.
+
+| Script | Purpose |
+|---|---|
+| `recon/rot/script_read_epi_rot_R6_0p5mm_v3.m` | Reads Siemens raw data (`.dat`) for each of the 12 rotations |
+| `recon/DPG_sharecode/DPG_recon_QL_v3_0p5_ms_3.m` | DPG (dynamic phase/ghost) correction, per shot |
+| `recon/BUDA_SLORAKS/RUN_S_LORAKS_QL_v1.m`, `recon/BUDA_SLORAKS/codes/RUN_BUDA_S_LORAKS.m` | BUDA + S-LORAKS parallel-imaging reconstruction |
+
+**External dependencies not vendored here** — install separately and add to
+your MATLAB path:
+- [`mapVBVD`](https://github.com/CIC-methods/FID-A) (or equivalent) to read
+  Siemens raw `.dat` files, used by `recon/rot/script_read_epi_rot_R6_0p5mm_v3.m`
+- GE `orchestra.matlab` SDK, used by `recon/DPG_sharecode/DPG_recon_QL_v3_0p5_ms_3.m`
+- `BUDA_LORAKS_UY` (BUDA/LORAKS toolbox), `addpath`-ed by `RUN_BUDA_S_LORAKS.m`
+
+> **Edit the paths first.** These scripts have hard-coded `save_path`/`data_path`
+> values under `/scratch/home/ql087/...` and `/rfanfs/...`. Point them at your
+> own raw data and output locations.
+
+---
+
+## 3. Preprocessing (MATLAB)
 
 Run in MATLAB, **Step 1 first, then Step 2**.
 
@@ -84,7 +134,7 @@ scripts load.
 
 ---
 
-## 2. Python environment
+## 4. Python environment
 
 See **[ENVIRONMENT.md](ENVIRONMENT.md)** for the full setup (GPU/CUDA
 requirements, package list, `tiny-cuda-nn` install). Quick version:
@@ -108,7 +158,7 @@ mixed precision; it will not run on CPU).
 
 ---
 
-## 3. Training — `rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4.py`
+## 5. Training — `rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4.py`
 
 ```bash
 python rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4.py
@@ -139,7 +189,7 @@ python rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4.py --weight_mode equal
 
 ---
 
-## 4. Inference / test — `rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4_test.py`
+## 6. Inference / test — `rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4_test.py`
 
 Loads a trained checkpoint and writes the reconstructed volume as NIfTI to
 `output/outputs/<model_name>/test-output/`. The `weight_mode` and
@@ -180,6 +230,13 @@ support `--profile_var` to pick which profile in the `.mat` to use
 
 | Path | Purpose |
 |------|---------|
+| `sequence/matlab/demoSeq/rover_dmri/singleband/cimax/ep2d_6mm_R6_3shots_slc28_dir25_QL_v4.m` | Pulseq sequence: 3-shot R=6 EPI diffusion acquisition |
+| `sequence/matlab/demoSeq/write2DGRE_QL_v3.m` | Pulseq sequence: 2D GRE calibration scan |
+| `sequence/matlab/+mr/` | Vendored Pulseq v1.5.1 MATLAB toolbox (sequence dependency) |
+| `sequence/diffusion_table/` | Diffusion gradient tables used by the sequence |
+| `recon/rot/script_read_epi_rot_R6_0p5mm_v3.m` | Read raw Siemens data for the 12 rotated views |
+| `recon/DPG_sharecode/` | DPG ghost/phase correction |
+| `recon/BUDA_SLORAKS/` | BUDA + S-LORAKS parallel-imaging reconstruction |
 | `Preprocessing_code_matlab/Step_1_preprocess.m` | Step 1: clean NIfTIs to single-frame 3D |
 | `Preprocessing_code_matlab/Step_2_generate_npy.m` | Step 2: export `imgs_nii_*.npy` + `Affine_nii_*.npy` |
 | `Preprocessing_code_matlab/rf_pulse_simulation_QL_v3.m` | RF slice-profile simulation |
