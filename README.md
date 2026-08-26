@@ -16,40 +16,29 @@ Two dataset configurations are provided:
 | Test script | `rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4_test.py` | `rover_b0_hash_philps_v3_tcnn_relu_charb_tv_test.py` |
 | Views / image size | 12 views, 310x310x28 | 12 views, 224x224x15 |
 
-## Pipeline overview
+## Repository layout
 
-Run the steps in this order:
+This repo covers two separate stages:
 
-1. **Acquisition — Pulseq sequence** (`sequence/matlab/demoSeq/rover_dmri/`)
-2. **Scanner recon — raw k-space to NIfTI** (`recon/`)
-3. **MATLAB preprocessing — Step 1** (`Preprocessing_code_matlab/Step_1_preprocess.m`)
-4. **MATLAB preprocessing — Step 2** (`Preprocessing_code_matlab/Step_2_generate_npy.m`)
-5. **Python training** (`rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4.py`)
-6. **Python inference / test** (`rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4_test.py`)
+1. **[Sequence and Reconstruction](#part-1-sequence-and-reconstruction)** —
+   the Pulseq acquisition sequence and the raw k-space to NIfTI
+   reconstruction (DPG + BUDA/S-LORAKS) that runs on the scanner data.
+2. **[ROVER-dMRI super-resolution reconstruction](#part-2-rover-dmri-super-resolution-reconstruction)** —
+   MATLAB preprocessing plus the TCNN training/inference that turns the
+   per-view NIfTIs into an isotropic high-resolution volume.
 
-Steps 1–2 acquire and reconstruct the per-view NIfTI volumes; steps 3–4 turn
-those NIfTIs into the `.npy` image + affine files the Python code reads;
-steps 5–6 train the model and reconstruct the final isotropic volume.
-
----
-
-## 0. Example / test dataset
-
-The example acquisitions used by the default paths in the scripts (12-view
-thick-slice NIfTI volumes plus the per-view affine matrices they preprocess
-to) will be released as an open dataset on
-**[OpenNeuro](https://openneuro.org/)**.
-
-> **TODO:** add the OpenNeuro accession link/DOI here once the dataset is
-> published.
-
-Until then, `--img_path` (in `util_args_rover_b0_v18_lr1e4.py`) and the
-`Affine_nii_*.npy` paths hard-coded in the training/test scripts point at a
-local path (`/scratch/home/ql087/data_bwh/Cima_data/preprocess_rover_nii/`).
-Point these at wherever you place your own copy of the data (or the
-downloaded OpenNeuro dataset once available).
+> **Note:** these two parts are not a verified, matched end-to-end pipeline.
+> The example/test dataset used in Part 2
+> (`/scratch/home/ql087/data_bwh/Cima_data/preprocess_rover_nii/`) was **not**
+> produced by running Part 1's reconstruction code on raw scanner data from
+> the same session — they are independent deliverables. If you run the full
+> chain yourself (sequence → scanner → recon → preprocessing → training),
+> verify the intermediate NIfTIs match what Part 2 expects before trusting
+> the result.
 
 ---
+
+# Part 1: Sequence and Reconstruction
 
 ## 1. Acquisition — Pulseq sequence (MATLAB)
 
@@ -71,13 +60,12 @@ Run the sequence script in MATLAB with `sequence/matlab` (incl. `+mr/`) on
 the path; it writes a `.seq` file to load on the scanner. Edit the
 `seq_file` name and imaging parameters at the top of the script for your setup.
 
----
-
 ## 2. Reconstruction — raw k-space to NIfTI (MATLAB)
 
 `recon/` turns the raw scanner data from the 12 rotated-view acquisitions
-into the per-view NIfTI volumes that Step 1 of the MATLAB preprocessing
-below consumes.
+into per-view NIfTI volumes, in the same layout Step 1 of the Part 2
+preprocessing below expects (but see the note above — this has not been
+verified against the specific example dataset shipped with Part 2).
 
 | Script | Purpose |
 |---|---|
@@ -98,7 +86,28 @@ your MATLAB path:
 
 ---
 
-## 3. Preprocessing (MATLAB)
+# Part 2: ROVER-dMRI super-resolution reconstruction
+
+## 0. Example / test dataset
+
+The example acquisitions used by the default paths in the scripts (12-view
+thick-slice NIfTI volumes plus the per-view affine matrices they preprocess
+to) will be released as an open dataset on
+**[OpenNeuro](https://openneuro.org/)**.
+
+> **TODO:** add the OpenNeuro accession link/DOI here once the dataset is
+> published.
+
+> **Note:** this dataset is not the direct output of the Part 1 reconstruction
+> code above — see the note at the top of this README.
+
+Until then, `--img_path` (in `util_args_rover_b0_v18_lr1e4.py`) and the
+`Affine_nii_*.npy` paths hard-coded in the training/test scripts point at a
+local path (`/scratch/home/ql087/data_bwh/Cima_data/preprocess_rover_nii/`).
+Point these at wherever you place your own copy of the data (or the
+downloaded OpenNeuro dataset once available).
+
+## 1. Preprocessing (MATLAB)
 
 Run in MATLAB, **Step 1 first, then Step 2**.
 
@@ -132,9 +141,7 @@ scripts load.
 > under `/scratch/home/ql087/data_bwh/...`. Point these at your own data and
 > toolbox locations.
 
----
-
-## 4. Python environment
+## 2. Python environment
 
 See **[ENVIRONMENT.md](ENVIRONMENT.md)** for the full setup (GPU/CUDA
 requirements, package list, `tiny-cuda-nn` install). Quick version:
@@ -156,9 +163,7 @@ mixed precision; it will not run on CPU).
 > `.../preprocess_rover_nii/imgs_nii_*.npy`); the per-view `Affine_nii_*.npy`
 > paths are set inside the scripts. Edit these to your data.
 
----
-
-## 5. Training — `rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4.py`
+## 3. Training — `rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4.py`
 
 ```bash
 python rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4.py
@@ -187,9 +192,7 @@ Example (uniform weighting instead of slice profile):
 python rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4.py --weight_mode equal
 ```
 
----
-
-## 6. Inference / test — `rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4_test.py`
+## 4. Inference / test — `rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4_test.py`
 
 Loads a trained checkpoint and writes the reconstructed volume as NIfTI to
 `output/outputs/<model_name>/test-output/`. The `weight_mode` and
@@ -207,8 +210,6 @@ python rover_b0_hash_cima_v0_tcnn_relu_charb_tv_tbwp4_test.py \
 Useful options: `--checkpoint_iter`, `--checkpoint_path`, `--weight_mode`,
 `--charb_epsilon`, `--z_spacing_mm` (through-plane voxel size written to the
 NIfTI header, default = in-plane x resolution).
-
----
 
 ## Legacy: Philips phantom pipeline
 
