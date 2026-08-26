@@ -92,20 +92,17 @@ your MATLAB path:
 
 The example acquisitions used by the default paths in the scripts (12-view
 thick-slice NIfTI volumes plus the per-view affine matrices they preprocess
-to) will be released as an open dataset on
-**[OpenNeuro](https://openneuro.org/)**.
+to) are available here:
 
-> **TODO:** add the OpenNeuro accession link/DOI here once the dataset is
-> published.
+**[Download the example dataset](https://drive.google.com/file/d/1V_NGbFb7SQjnFDIRtyVZ5aIfQFXtGH3y/view?usp=share_link)**
 
 > **Note:** this dataset is not the direct output of the Part 1 reconstruction
 > code above — see the note at the top of this README.
 
-Until then, `--img_path` (in `util_args_rover_b0_v18_lr1e4.py`) and the
-`Affine_nii_*.npy` paths hard-coded in the training/test scripts point at a
-local path (`/scratch/home/ql087/data_bwh/Cima_data/preprocess_rover_nii/`).
-Point these at wherever you place your own copy of the data (or the
-downloaded OpenNeuro dataset once available).
+`--img_path` (in `util_args_rover_b0_v18_lr1e4.py`) and the `Affine_nii_*.npy`
+paths hard-coded in the training/test scripts point at a local path
+(`/scratch/home/ql087/data_bwh/Cima_data/preprocess_rover_nii/`). Point these
+at wherever you place your own downloaded copy of the data.
 
 ## 1. Preprocessing (MATLAB)
 
